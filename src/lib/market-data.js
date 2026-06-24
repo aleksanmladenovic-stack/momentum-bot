@@ -4,7 +4,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { MORALIS_API_KEY } from "../constants/constants.js";
+import { MORALIS_API_KEY, RPCURL, COMMITMENT } from "../constants/constants.js";
 
 let solPriceCache = { price: null, ts: 0 };
 let marketCache = new Map();
@@ -29,7 +29,11 @@ export async function fetchSolPriceUsd() {
   }
   return solPriceCache.price ?? 150;
 }
-
+/**
+ * Fetch the highest-liquidity DexScreener pair for a Solana token mint.
+ * @param {string} mint - Token mint address.
+ * @returns {Promise<object|null>} Price, volume, liquidity, and change fields, or null if no pair.
+ */
 export async function fetchDexPair(mint) {
   const cached = marketCache.get(mint);
   if (cached && Date.now() - cached.ts < 15000) {
@@ -63,7 +67,11 @@ export async function fetchDexPair(mint) {
   marketCache.set(mint, { data, ts: Date.now() });
   return data;
 }
-
+/**
+ * Fetch total holder count from Moralis (requires MORALIS_API_KEY).
+ * @param {string} mint - Token mint address.
+ * @returns {Promise<number|null>}
+ */
 export async function fetchHolders(mint) {
   const key = MORALIS_API_KEY;
   if (!key) return null;
@@ -79,4 +87,74 @@ export async function fetchHolders(mint) {
   } catch {
     return null;
   }
+}
+/**
+ * Combine DexScreener market data and Moralis holder count into one snapshot.
+ * @param {string} mint - Token mint address.
+ * @returns {Promise<object>}
+ */
+export async function fetchMarketSnapshot(mint) {
+  const [dex, totalHolders] = await Promise.all([
+    fetchDexPair(mint),
+    fetchHolders(mint),
+  ]);
+
+  return {
+    mint,
+    priceUsd: dex?.priceUsd ?? null,
+    marketCap: dex?.marketCap ?? null,
+    volume24h: dex?.volume24h ?? null,
+    volume5m: dex?.volume5m ?? null,
+    liquidityUsd: dex?.liquidityUsd ?? null,
+    totalHolders,
+    priceChange5m: dex?.priceChange5m ?? null,
+    priceChange15m: dex?.priceChange15m ?? null,
+    source: {
+      market: dex ? "dexscreener" : null,
+      holders: totalHolders != null ? "moralis" : null,
+    },
+  };
+}
+/**
+ * Derive per-token price from a swap's SOL and token amounts.
+ * @param {object} swap - Parsed swap with solAmount and tokenAmount.
+ * @param {number} solPriceUsd - Current SOL price in USD.
+ * @returns {{ priceSol: number, priceUsd: number }|null}
+ */
+export async function fetchMarketCapFromSupply(mint, priceUsd) {
+  if (!priceUsd) return null;
+  try {
+    const connection = new Connection(RPCURL, COMMITMENT);
+    const pubkey = new PublicKey(mint);
+    let mintInfo;
+    try {
+      mintInfo = await getMint(
+        connection,
+        pubkey,
+        undefined,
+        TOKEN_2022_PROGRAM_ID,
+      );
+    } catch {
+      mintInfo = await getMint(connection, pubkey, undefined, TOKEN_PROGRAM_ID);
+    }
+    const supply = Number(mintInfo.supply) / 10 ** mintInfo.decimals;
+    return priceUsd * supply;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Derive per-token price from a swap's SOL and token amounts.
+ * @param {object} swap - Parsed swap with solAmount and tokenAmount.
+ * @param {number} solPriceUsd - Current SOL price in USD.
+ * @returns {{ priceSol: number, priceUsd: number }|null}
+ */
+export function priceFromSwap(swap, solPriceUsd) {
+  if (!swap.solAmount || !swap.tokenAmount) return null;
+  const priceSol = swap.solAmount / swap.tokenAmount;
+  return {
+    priceSol,
+    priceUsd: priceSol * solPriceUsd,
+  };
 }
