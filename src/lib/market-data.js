@@ -29,11 +29,7 @@ export async function fetchSolPriceUsd() {
   }
   return solPriceCache.price ?? 150;
 }
-/**
- * Fetch the highest-liquidity DexScreener pair for a Solana token mint.
- * @param {string} mint - Token mint address.
- * @returns {Promise<object|null>} Price, volume, liquidity, and change fields, or null if no pair.
- */
+//Fetch the highest-liquidity DexScreener pair for a Solana token mint.
 export async function fetchDexPair(mint) {
   const cached = marketCache.get(mint);
   if (cached && Date.now() - cached.ts < 15000) {
@@ -67,11 +63,7 @@ export async function fetchDexPair(mint) {
   marketCache.set(mint, { data, ts: Date.now() });
   return data;
 }
-/**
- * Fetch total holder count from Moralis (requires MORALIS_API_KEY).
- * @param {string} mint - Token mint address.
- * @returns {Promise<number|null>}
- */
+//Fetch total holder count from Moralis (requires MORALIS_API_KEY).
 export async function fetchHolders(mint) {
   const key = MORALIS_API_KEY;
   if (!key) return null;
@@ -88,11 +80,8 @@ export async function fetchHolders(mint) {
     return null;
   }
 }
-/**
- * Combine DexScreener market data and Moralis holder count into one snapshot.
- * @param {string} mint - Token mint address.
- * @returns {Promise<object>}
- */
+
+//Combine DexScreener market data and Moralis holder count into one snapshot.
 export async function fetchMarketSnapshot(mint) {
   const [dex, totalHolders] = await Promise.all([
     fetchDexPair(mint),
@@ -115,12 +104,8 @@ export async function fetchMarketSnapshot(mint) {
     },
   };
 }
-/**
- * Derive per-token price from a swap's SOL and token amounts.
- * @param {object} swap - Parsed swap with solAmount and tokenAmount.
- * @param {number} solPriceUsd - Current SOL price in USD.
- * @returns {{ priceSol: number, priceUsd: number }|null}
- */
+
+//Derive per-token price from a swap's SOL and token amounts.
 export async function fetchMarketCapFromSupply(mint, priceUsd) {
   if (!priceUsd) return null;
   try {
@@ -144,12 +129,7 @@ export async function fetchMarketCapFromSupply(mint, priceUsd) {
   }
 }
 
-/**
- * Derive per-token price from a swap's SOL and token amounts.
- * @param {object} swap - Parsed swap with solAmount and tokenAmount.
- * @param {number} solPriceUsd - Current SOL price in USD.
- * @returns {{ priceSol: number, priceUsd: number }|null}
- */
+// Derive per-token price from a swap's SOL and token amounts.
 export function priceFromSwap(swap, solPriceUsd) {
   if (!swap.solAmount || !swap.tokenAmount) return null;
   const priceSol = swap.solAmount / swap.tokenAmount;
