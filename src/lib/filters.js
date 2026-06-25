@@ -28,5 +28,4 @@ export function passesUniverseFilters(market) {
   }
 
   return { pass: reasons.length === 0, reasons };
-  s;
 }

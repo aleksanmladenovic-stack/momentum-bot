@@ -11,7 +11,7 @@ function num(key, fallback) {
 export const minLiquidityUsd = num("MIN_LIQUIDITY_USD", 5000);
 export const minVolume24hUsd = num("MIN_VOLUME_24H_USD", 1000);
 export const minHolders = num("MIN_HOLDERS", 20);
-export const minMarketCapUsd = num("MIN_MARKET_CAP_USD", 0);
+export const minMarketCapUsd = num("MIN_MARKET_CAP_USD", 3000);
 export const maxMarketCapUsd = num("MAX_MARKET_CAP_USD", 500000);
 
 // Buy = momentum thresholds
