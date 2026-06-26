@@ -8,23 +8,23 @@ function num(key, fallback) {
 }
 
 // Universe filters
-export const minLiquidityUsd = num("MIN_LIQUIDITY_USD", 5000);
+export const minLiquidityUsd = num("MIN_LIQUIDITY_USD", 1500);
 export const minVolume24hUsd = num("MIN_VOLUME_24H_USD", 1000);
 export const minHolders = num("MIN_HOLDERS", 20);
-export const minMarketCapUsd = num("MIN_MARKET_CAP_USD", 3000);
-export const maxMarketCapUsd = num("MAX_MARKET_CAP_USD", 500000);
+export const minMarketCapUsd = num("MIN_MARKET_CAP_USD", 4000);
+export const maxMarketCapUsd = num("MAX_MARKET_CAP_USD", 50000);
 
 // Buy = momentum thresholds
 export const minPriceChange3mPct = num("MIN_PRICE_CHANGE_3M_PCT", 8);
 export const maxPriceChange15mPct = num("MAX_PRICE_CHANGE_15M_PCT", 50);
 export const minVolumeSpikeRatio = num("MIN_VOLUME_SPIKE_RATIO", 2.5);
-export const minBuySellRatio = num("MIN_BUY_SELL_RATIO", 1.8);
+export const minBuySellRatio = num("MIN_BUY_SELL_RATIO", 1.6);
 export const minBuyScore = num("MIN_BUY_SCORE", 15);
 export const maxSingleSellSol = num("MAX_SINGLE_SELL_SOL", 3);
 
 // Amount filter for whale alerts (webhook)
 export const minTradeSol = num("MIN_TRADE_SOL", 0);
-export const maxTradeSol = num("MAX_TRADE_SOL", 0) || null;
+export const maxTradeSol = num("MAX_TRADE_SOL", 1);
 
 // Sell = exits
 export const takeProfitLevels = [

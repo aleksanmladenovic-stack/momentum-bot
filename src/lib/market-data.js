@@ -29,6 +29,19 @@ export async function fetchSolPriceUsd() {
   }
   return solPriceCache.price ?? 150;
 }
+// Get real liquidityUsd
+export async function fetchPumpLiquidityUsd(mint, solPriceUsd) {
+  try {
+    const res = await fetch(`https://frontend-api-v3.pump.fun/coins/${mint}`);
+    if (!res.ok) return null;
+    const coin = await res.json();
+    if (coin.complete) return null; // graduated — use DexScreener instead
+    const sol = (coin.real_sol_reserves ?? 0) / 1e9;
+    return sol > 0 ? sol * solPriceUsd : null;
+  } catch {
+    return null;
+  }
+}
 //Fetch the highest-liquidity DexScreener pair for a Solana token mint.
 export async function fetchDexPair(mint) {
   const cached = marketCache.get(mint);
@@ -47,13 +60,17 @@ export async function fetchDexPair(mint) {
   const best = pairs.sort(
     (a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0),
   )[0];
-
+  let liquidityUsd = best.liquidity?.usd ?? null;
+  if (best.dexId === "pumpfun" && liquidityUsd == null) {
+    const solPrice = await fetchSolPriceUsd();
+    liquidityUsd = await fetchPumpLiquidityUsd(mint, solPrice);
+  }
   const data = {
     priceUsd: parseFloat(best.priceUsd) || null,
     marketCap: best.marketCap ?? best.fdv ?? null,
     volume24h: best.volume?.h24 ?? null,
     volume5m: best.volume?.m5 ?? null,
-    liquidityUsd: best.liquidity?.usd ?? null,
+    liquidityUsd: liquidityUsd,
     txns5m: best.txns?.m5 ?? null,
     dexId: best.dexId ?? null,
     priceChange5m: best.priceChange?.m5 ?? null,
@@ -87,7 +104,6 @@ export async function fetchMarketSnapshot(mint) {
     fetchDexPair(mint),
     fetchHolders(mint),
   ]);
-
   return {
     mint,
     priceUsd: dex?.priceUsd ?? null,

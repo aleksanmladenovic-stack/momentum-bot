@@ -42,7 +42,7 @@ export class PositionManager {
     pos.highestPriceUsd = Math.max(pos.highestPriceUsd, priceUsd);
   }
   //Evalute exit rules: stop loss, trailing stop, take-profit ladder, time stop, momentum decay
-  exportevaluteSell(mint, currentPriceUsd, toeknState) {
+  evaluateSell(mint, currentPriceUsd, tokenState) {
     const pos = this.positions.get(mint);
     if (!pos || !currentPriceUsd || !pos.entryPriceUsd) {
       return { action: "HOLD", reason: "no_position" };

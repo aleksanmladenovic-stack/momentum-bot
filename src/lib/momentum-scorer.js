@@ -10,6 +10,8 @@ import {
   minVolumeDecayRatio,
 } from "../strategy/strategy.js";
 
+import { passesUniverseFilters } from "./filters.js";
+
 //Weighted momentum scoring and BUY/SKIP / decay evaluation.
 export function computeMomentumScore(state, market) {
   const w = weights;
