@@ -1,29 +1,29 @@
 import { windows } from "../strategy/strategy.js";
-import { TokenStateStore } from "../lib/token-state";
-import { PositionManager } from "../lib/position-manager";
+import { TokenStateStore } from "../lib/token-state.js";
+import { PositionManager } from "../lib/position-manager.js";
 import {
   fetchMarketSnapshot,
   fetchMarketCapFromSupply,
-} from "../lib/market-data";
-import { evaluateBuyPoint } from "../lib/momentum-scorer";
+} from "../lib/market-data.js";
+import { evaluateBuyPoint } from "../lib/momentum-scorer.js";
 
-// const WATCH_MINTS = (process.env.WATCH_MINTS || process.env.TARGET_MINT || "")
-//   .split(",")
-//   .map((s) => s.trim())
-//   .filter(Boolean);
+const WATCH_MINTS = (process.env.WATCH_MINTS || process.env.TARGET_MINT || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-// const INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 5000);
+const INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 5000);
 
-// if (WATCH_MINTS.length === 0) {
-//   console.error("Set TARGET_MINT or WATCH_MINTS (comma-separated) in .env");
-//   process.exit(1);
-// }
+if (WATCH_MINTS.length === 0) {
+  console.error("Set TARGET_MINT or WATCH_MINTS (comma-separated) in .env");
+  process.exit(1);
+}
 
 const store = new TokenStateStore();
 const positions = new PositionManager();
 
 //Emit a structured JSON log line for signals and events.
-function log(event, data) {
+export function log(event, data) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), event, ...data }));
 }
 
@@ -77,16 +77,16 @@ export async function pollMint(mint) {
 }
 
 //Poll all configured watch mints once per interval tick.
-// async function tick() {
-//   for (const mint of WATCH_MINTS) {
-//     try {
-//       await pollMint(mint);
-//     } catch (err) {
-//       log("error", { mint, message: err.message });
-//     }
-//   }
-// }
+async function tick() {
+  for (const mint of WATCH_MINTS) {
+    try {
+      await pollMint(mint);
+    } catch (err) {
+      log("error", { mint, message: err.message });
+    }
+  }
+}
 
-// console.log(`Polling every ${INTERVAL_MS}ms for: ${WATCH_MINTS.join(", ")}`);
-// tick();
-// setInterval(tick, INTERVAL_MS);
+console.log(`Polling every ${INTERVAL_MS}ms for: ${WATCH_MINTS.join(", ")}`);
+tick();
+setInterval(tick, INTERVAL_MS);

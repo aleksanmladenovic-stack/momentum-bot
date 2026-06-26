@@ -71,8 +71,8 @@ export function inferDecimals(post, pre, mint) {
 export function matchesAmountFilter(swap, { minSol, maxSol }) {
   if (!swap.side || swap.side === "swap") return false;
   const value = swap.solAmount;
-  if (minSol > 0 && value < minSol) return false;
-  if (maxSol != null && maxSol > 0 && value > maxSol) return false;
+  if (value < minSol) return false;
+  if (value > maxSol) return false;
   return true;
 }
 //Collect unique non-wrapped-SOL mint addresses involved in a transaction.

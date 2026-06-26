@@ -30,14 +30,13 @@ export async function fetchSolPriceUsd() {
   return solPriceCache.price ?? 150;
 }
 // Get real liquidityUsd
-export async function fetchPumpLiquidityUsd(mint, solPriceUsd) {
+export async function fetchPumpLiquidityUsd(mint) {
   try {
     const res = await fetch(`https://frontend-api-v3.pump.fun/coins/${mint}`);
     if (!res.ok) return null;
     const coin = await res.json();
     if (coin.complete) return null; // graduated — use DexScreener instead
-    const sol = (coin.real_sol_reserves ?? 0) / 1e9;
-    return sol > 0 ? sol * solPriceUsd : null;
+    return coin.real_sol_reserves / 1e6;
   } catch {
     return null;
   }
@@ -60,10 +59,11 @@ export async function fetchDexPair(mint) {
   const best = pairs.sort(
     (a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0),
   )[0];
+  console.log(best);
   let liquidityUsd = best.liquidity?.usd ?? null;
   if (best.dexId === "pumpfun" && liquidityUsd == null) {
     const solPrice = await fetchSolPriceUsd();
-    liquidityUsd = await fetchPumpLiquidityUsd(mint, solPrice);
+    liquidityUsd = await fetchPumpLiquidityUsd(mint);
   }
   const data = {
     priceUsd: parseFloat(best.priceUsd) || null,

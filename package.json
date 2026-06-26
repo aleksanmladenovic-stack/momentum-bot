@@ -13,7 +13,9 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "node src/scripts/test-scorer.js",
-    "evaluate": "node src/scripts/evaluate-token.js"
+    "evaluate": "node src/scripts/evaluate-token.js",
+    "poll-scan": "node src/scripts/poll-scanner.js",
+    "server": "node src/scripts/webhook-server.js"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.14",

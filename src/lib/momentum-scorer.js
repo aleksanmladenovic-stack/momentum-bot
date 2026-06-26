@@ -25,8 +25,7 @@ export function computeMomentumScore(state, market) {
 
   const buySellRatio = state.buySellRatio(windows.medium);
   const breakout = state.isBreakout(windows.long);
-  const holderGrowth = state.holderGrowth(10);
-
+  const holderGrowth = state.holderGrowth(1);
   const score =
     priceChange5m * w.priceChange5m +
     volumeSpikeRatio * w.volumeSpike +

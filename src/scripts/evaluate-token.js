@@ -11,10 +11,11 @@ import {
   minPriceChange3mPct,
 } from "../strategy/strategy.js";
 
-const mint = "iuv59R3W45a4xgcAJouwNvjtkSY3acj7218sPkbpump";
+const mint = "9Cn7or8TVicZYjSUEmgRk4A9XdXFzkBS8vn1ebt6pump";
 
 async function main() {
   const market = await fetchMarketSnapshot(mint);
+  // console.log(market);
   const marketCap =
     market.marketCap ?? (await fetchMarketCapFromSupply(mint, market.priceUsd));
 
@@ -23,6 +24,7 @@ async function main() {
 
   if (market.priceUsd) state.addPrice(market.priceUsd);
   if (market.totalHolders != null) state.addHolderCount(market.totalHolders);
+  // console.log(market);
 
   const decision = evaluateBuyPoint(state, { ...market, marketCap });
 
