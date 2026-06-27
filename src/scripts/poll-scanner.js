@@ -1,5 +1,4 @@
-import { windows } from "../strategy/strategy.js";
-import { TokenStateStore } from "../lib/token-state.js";
+import { TokenStateStore } from "../tokenState/token-state.js";
 import { PositionManager } from "../lib/position-manager.js";
 import {
   fetchMarketSnapshot,
@@ -38,7 +37,7 @@ export async function pollMint(mint) {
   if (market.totalHolders != null) state.addHolderCount(market.totalHolders);
 
   const currentPrice = market.priceUsd ?? state.latestPrice();
-
+  console.log(state.trades);
   if (positions.has(mint)) {
     const sell = positions.evaluateSell(mint, currentPrice, state);
     if (sell.action === "SELL") {
@@ -55,7 +54,7 @@ export async function pollMint(mint) {
   if (decision.action === "BUY") {
     positions.open(mint, {
       priceUsd: decision.buyPriceUsd ?? currentPrice,
-      volume5m: state.volumeSolInWindow(windows.medium),
+      volume5m: market.volume5m ?? null,
     });
     log("buy_signal", {
       mint,

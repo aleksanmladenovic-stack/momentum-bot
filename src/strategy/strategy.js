@@ -31,7 +31,7 @@ export const takeProfitLevels = [
   { pct: 25, sellPct: 30 },
   { pct: 60, sellPct: 30 },
 ];
-export const trailingStopPct = num("TRAILING_STOP_PCT", 25);
+export const trailingStopPct = num("TRAILING_STOP_PCT", 20);
 export const hardStopLossPct = num("HARD_STOP_LOSS_PCT", 15);
 export const timeStopMinutes = num("TIME_STOP_MINUTES", 3);
 export const minVolumeDecayRatio = num("MIN_VOLUME_DECAY_RATIO", 0.4);

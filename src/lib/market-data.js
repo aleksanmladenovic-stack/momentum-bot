@@ -110,6 +110,7 @@ export async function fetchMarketSnapshot(mint) {
     marketCap: dex?.marketCap ?? null,
     volume24h: dex?.volume24h ?? null,
     volume5m: dex?.volume5m ?? null,
+    txns5m: dex?.txns5m ?? null,
     liquidityUsd: dex?.liquidityUsd ?? null,
     totalHolders,
     priceChange5m: dex?.priceChange5m ?? null,

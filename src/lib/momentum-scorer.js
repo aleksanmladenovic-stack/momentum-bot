@@ -12,6 +12,28 @@ import {
 
 import { passesUniverseFilters } from "./filters.js";
 
+function hasTradeData(state, minutes = windows.medium) {
+  return state.tradesInWindow(minutes).length > 0;
+}
+
+function volume5mFromMarket(market) {
+  return market?.volume5m ?? 0;
+}
+
+function avgVolume5mFromMarket(market) {
+  const volume24h = market?.volume24h ?? 0;
+  return volume24h > 0 ? volume24h / 288 : 0;
+}
+
+function buySellRatioFromMarket(market) {
+  const txns = market?.txns5m;
+  if (!txns) return 0;
+  const buys = txns.buys ?? 0;
+  const sells = txns.sells ?? 0;
+  if (sells === 0) return buys > 0 ? buys : 0;
+  return buys / sells;
+}
+
 //Weighted momentum scoring and BUY/SKIP / decay evaluation.
 export function computeMomentumScore(state, market) {
   const w = weights;
@@ -19,11 +41,17 @@ export function computeMomentumScore(state, market) {
   const priceChange5m =
     state.priceChangePct(windows.medium) || market.priceChange5m || 0;
 
-  const avgVolume30m = state.volumeSolInWindow(windows.volumeAvg) || 1;
-  const volume5m = state.volumeSolInWindow(windows.medium);
-  const volumeSpikeRatio = volume5m / (avgVolume30m / 6 || 1);
+  const volume5m = hasTradeData(state)
+    ? state.volumeSolInWindow(windows.medium)
+    : volume5mFromMarket(market);
+  const avgVolume5m = hasTradeData(state, windows.volumeAvg)
+    ? state.volumeSolInWindow(windows.volumeAvg) / 6
+    : avgVolume5mFromMarket(market);
+  const volumeSpikeRatio = volume5m / (avgVolume5m || 1);
 
-  const buySellRatio = state.buySellRatio(windows.medium);
+  const buySellRatio = hasTradeData(state)
+    ? state.buySellRatio(windows.medium)
+    : buySellRatioFromMarket(market);
   const breakout = state.isBreakout(windows.long);
   const holderGrowth = state.holderGrowth(1);
   const score =
@@ -43,7 +71,7 @@ export function computeMomentumScore(state, market) {
     buySellRatio,
     breakout,
     holderGrowth,
-    largestSell60s: state.largestSellSol(60),
+    largestSell60s: hasTradeData(state, 1) ? state.largestSellSol(60) : 0,
   };
 }
 
