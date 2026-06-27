@@ -1,22 +1,24 @@
-import { TokenStateStore } from "../tokenState/token-state.js";
+import { TokenStateStore } from "../store/token-state.js";
 import { PositionManager } from "../lib/position-manager.js";
 import {
   fetchMarketSnapshot,
   fetchMarketCapFromSupply,
 } from "../lib/market-data.js";
 import { evaluateBuyPoint } from "../lib/momentum-scorer.js";
+import storeState from "../store/store.js";
 
-const WATCH_MINTS = (process.env.WATCH_MINTS || process.env.TARGET_MINT || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+// const WATCH_MINTS = (process.env.WATCH_MINTS || process.env.TARGET_MINT || "")
+//   .split(",")
+//   .map((s) => s.trim())
+//   .filter(Boolean);
 
 const INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 5000);
 
-if (WATCH_MINTS.length === 0) {
-  console.error("Set TARGET_MINT or WATCH_MINTS (comma-separated) in .env");
-  process.exit(1);
-}
+// if (WATCH_MINTS.length === 0) {
+//   console.error("Set TARGET_MINT or WATCH_MINTS (comma-separated) in .env");
+//   process.exit(1);
+// }
+const WATCH_MINTS = storeState.mintAddresses;
 
 const store = new TokenStateStore();
 const positions = new PositionManager();
@@ -37,7 +39,6 @@ export async function pollMint(mint) {
   if (market.totalHolders != null) state.addHolderCount(market.totalHolders);
 
   const currentPrice = market.priceUsd ?? state.latestPrice();
-  console.log(state.trades);
   if (positions.has(mint)) {
     const sell = positions.evaluateSell(mint, currentPrice, state);
     if (sell.action === "SELL") {
