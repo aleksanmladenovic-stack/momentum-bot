@@ -15,27 +15,45 @@ import {
   getBuyTokenAmountFromSolAmount,
   getSellSolAmountFromTokenAmount,
 } from "@pump-fun/pump-sdk";
-import { RPCURL, COMMITMENT, PRIVATE_KEY, EXECUTE_TRADES, TRADE_SOL, SLIPPAGE_PCT, PRIORITY_FEE_MICROLAMPORTS, COMPUTE_UNIT_LIMIT, BLOCKHASH_REFRESH_MS } from "../constants/constants.js";
+import {
+  RPCURL,
+  EXECUTOR_RPC_URL,
+  COMMITMENT,
+  PRIVATE_KEY,
+  executeTrades,
+  tradeSol,
+  slippagePct,
+  priorityFeeMicrolamports,
+  computeUnitLimit,
+  blockhashRefreshMs,
+} from "../constants/constants.js";
 
-export const EXECUTE_TRADES = Number(EXECUTE_TRADES);
-export const TRADE_SOL = Number(TRADE_SOL);
-export const SLIPPAGE_PCT = Number(SLIPPAGE_PCT);
-export const PRIORITY_FEE_MICROLAMPORTS = Number(PRIORITY_FEE_MICROLAMPORTS);
-export const COMPUTE_UNIT_LIMIT = Number(COMPUTE_UNIT_LIMIT);
-export const BLOCKHASH_REFRESH_MS = Number(BLOCKHASH_REFRESH_MS);
+export const EXECUTE_TRADES = Boolean(executeTrades);
+export const TRADE_SOL = Number(tradeSol);
+export const SLIPPAGE_PCT = Number(slippagePct);
+export const PRIORITY_FEE_MICROLAMPORTS = Number(priorityFeeMicrolamports);
+export const COMPUTE_UNIT_LIMIT = Number(computeUnitLimit);
+export const BLOCKHASH_REFRESH_MS = Number(blockhashRefreshMs);
+
+const EXECUTOR_COMMITMENT = COMMITMENT || "processed";
+const GLOBAL_CACHE_MS = 45_000;
+const BLOCKHASH_MAX_AGE_MS = 60_000;
 
 let wallet = null;
-let connection = null;
+let readConnection = null;
+let sendConnection = null;
 let onlineSdk = null;
 let blockhashLoopStarted = false;
+let warmed = false;
 
 const cachedBlockhash = {
   blockhash: null,
   lastValidBlockHeight: 0,
   ts: 0,
 };
-const cachedGlobal = { value: null, ts: 0 };
+const cachedGlobal = { value: null, ts: 0, refresh: null };
 const inFlightMints = new Set();
+const mintKeyCache = new Map();
 
 function loadWallet() {
   if (wallet) return wallet;
@@ -45,17 +63,35 @@ function loadWallet() {
   return wallet;
 }
 
-function getConnection() {
-  if (!connection) {
+function getReadConnection() {
+  if (!readConnection) {
     if (!RPCURL) throw new Error("RPC_URL is not set in .env");
-    connection = new Connection(RPCURL, COMMITMENT || "confirmed");
+    readConnection = new Connection(RPCURL, EXECUTOR_COMMITMENT);
   }
-  return connection;
+  return readConnection;
+}
+
+function getSendConnection() {
+  if (!sendConnection) {
+    const url = EXECUTOR_RPC_URL || RPCURL;
+    if (!url) throw new Error("RPC_URL is not set in .env");
+    sendConnection = new Connection(url, EXECUTOR_COMMITMENT);
+  }
+  return sendConnection;
 }
 
 function getOnlineSdk() {
-  if (!onlineSdk) onlineSdk = new OnlinePumpSdk(getConnection());
+  if (!onlineSdk) onlineSdk = new OnlinePumpSdk(getReadConnection());
   return onlineSdk;
+}
+
+function getMintKey(mintAddress) {
+  let mint = mintKeyCache.get(mintAddress);
+  if (!mint) {
+    mint = new PublicKey(mintAddress);
+    mintKeyCache.set(mintAddress, mint);
+  }
+  return mint;
 }
 
 export function isExecutorReady() {
@@ -64,36 +100,80 @@ export function isExecutorReady() {
 
 export async function refreshBlockhash() {
   const { blockhash, lastValidBlockHeight } =
-    await getConnection().getLatestBlockhash("processed");
+    await getReadConnection().getLatestBlockhash(EXECUTOR_COMMITMENT);
   cachedBlockhash.blockhash = blockhash;
   cachedBlockhash.lastValidBlockHeight = lastValidBlockHeight;
   cachedBlockhash.ts = Date.now();
   return cachedBlockhash;
 }
 
-/** Keep a fresh blockhash in memory to shave latency off each send. */
-export function startBlockhashRefresh(
-  intervalMs = BLOCKHASH_REFRESH_MS,
-) {
-  if (blockhashLoopStarted) return;
-  blockhashLoopStarted = true;
-  refreshBlockhash().catch(() => { });
-  setInterval(() => refreshBlockhash().catch(() => { }), intervalMs);
-}
-
-async function getBlockhash() {
-  if (!cachedBlockhash.blockhash || Date.now() - cachedBlockhash.ts > 30_000) {
-    await refreshBlockhash();
+export async function refreshGlobal() {
+  if (cachedGlobal.refresh) {
+    return cachedGlobal.refresh;
   }
-  return cachedBlockhash;
+
+  cachedGlobal.refresh = getOnlineSdk()
+    .fetchGlobal()
+    .then((value) => {
+      cachedGlobal.value = value;
+      cachedGlobal.ts = Date.now();
+      return value;
+    })
+    .finally(() => {
+      cachedGlobal.refresh = null;
+    });
+
+  return cachedGlobal.refresh;
 }
 
 async function getGlobalCached() {
-  if (!cachedGlobal.value || Date.now() - cachedGlobal.ts > 60_000) {
-    cachedGlobal.value = await getOnlineSdk().fetchGlobal();
-    cachedGlobal.ts = Date.now();
+  if (cachedGlobal.value && Date.now() - cachedGlobal.ts < GLOBAL_CACHE_MS) {
+    return cachedGlobal.value;
   }
-  return cachedGlobal.value;
+  return refreshGlobal();
+}
+
+function getBlockhashCached() {
+  if (
+    cachedBlockhash.blockhash &&
+    Date.now() - cachedBlockhash.ts < BLOCKHASH_MAX_AGE_MS
+  ) {
+    return cachedBlockhash;
+  }
+  return null;
+}
+
+async function getBlockhash() {
+  const cached = getBlockhashCached();
+  if (cached) return cached;
+  return refreshBlockhash();
+}
+
+/** Pre-load wallet, connections, blockhash, and pump global state. */
+export function warmExecutor() {
+  if (!isExecutorReady()) return false;
+  if (warmed) return true;
+
+  loadWallet();
+  getReadConnection();
+  getSendConnection();
+  getOnlineSdk();
+  warmed = true;
+
+  refreshBlockhash().catch(() => {});
+  refreshGlobal().catch(() => {});
+  return true;
+}
+
+/** Keep blockhash and global state warm to shave latency off each send. */
+export function startBlockhashRefresh(intervalMs = BLOCKHASH_REFRESH_MS) {
+  warmExecutor();
+  if (blockhashLoopStarted) return;
+  blockhashLoopStarted = true;
+
+  refreshBlockhash().catch(() => {});
+  setInterval(() => refreshBlockhash().catch(() => {}), intervalMs);
+  setInterval(() => refreshGlobal().catch(() => {}), GLOBAL_CACHE_MS);
 }
 
 function priorityInstructions() {
@@ -106,7 +186,7 @@ function priorityInstructions() {
 }
 
 async function sendFast(instructions, payer) {
-  const conn = getConnection();
+  const conn = getSendConnection();
   const { blockhash, lastValidBlockHeight } = await getBlockhash();
 
   const message = new TransactionMessage({
@@ -117,16 +197,21 @@ async function sendFast(instructions, payer) {
 
   const tx = new VersionedTransaction(message);
   tx.sign([payer]);
+  const raw = tx.serialize();
 
-  const signature = await conn.sendRawTransaction(tx.serialize(), {
+  const signature = await conn.sendRawTransaction(raw, {
     skipPreflight: true,
-    maxRetries: 2,
+    maxRetries: 3,
     preflightCommitment: "processed",
   });
 
+  // Confirm in background — do not block the hot path.
   conn
-    .confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed")
-    .catch(() => { });
+    .confirmTransaction(
+      { signature, blockhash, lastValidBlockHeight },
+      "confirmed",
+    )
+    .catch(() => {});
 
   return signature;
 }
@@ -148,11 +233,15 @@ export async function executeBuy(mintAddress, solAmount = TRADE_SOL) {
   const started = Date.now();
 
   try {
+    warmExecutor();
     const payer = loadWallet();
-    const mint = new PublicKey(mintAddress);
+    const mint = getMintKey(mintAddress);
     const online = getOnlineSdk();
-    const global = await getGlobalCached();
-    const buyState = await online.fetchBuyState(mint, payer.publicKey);
+
+    const [global, buyState] = await Promise.all([
+      getGlobalCached(),
+      online.fetchBuyState(mint, payer.publicKey),
+    ]);
 
     const lamports = new BN(Math.floor(solAmount * 1e9));
     const tokenAmount = getBuyTokenAmountFromSolAmount(
@@ -214,19 +303,29 @@ export async function executeSell(mintAddress, { sellPct = 100 } = {}) {
   const started = Date.now();
 
   try {
+    warmExecutor();
     const payer = loadWallet();
-    const mint = new PublicKey(mintAddress);
+    const mint = getMintKey(mintAddress);
     const online = getOnlineSdk();
-    const global = await getGlobalCached();
-    const sellState = await online.fetchSellState(mint, payer.publicKey);
-
     const ata = getAssociatedTokenAddressSync(mint, payer.publicKey);
-    const balance = await getConnection().getTokenAccountBalance(ata);
+
+    const [global, sellState, balance] = await Promise.all([
+      getGlobalCached(),
+      online.fetchSellState(mint, payer.publicKey),
+      getReadConnection().getTokenAccountBalance(ata),
+    ]);
+
     const total = new BN(balance.value.amount);
     const amount = total.muln(Math.max(0, Math.min(100, sellPct))).divn(100);
 
     if (amount.isZero()) {
-      return { ok: false, side: "sell", mint: mintAddress, reason: "zero_balance" };
+      return {
+        ok: false,
+        side: "sell",
+        mint: mintAddress,
+        reason: "zero_balance",
+        latencyMs: Date.now() - started,
+      };
     }
 
     const solAmount = getSellSolAmountFromTokenAmount(
@@ -274,6 +373,8 @@ export const executor = {
   executeBuy,
   executeSell,
   isExecutorReady,
+  warmExecutor,
   startBlockhashRefresh,
   refreshBlockhash,
+  refreshGlobal,
 };

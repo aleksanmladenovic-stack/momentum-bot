@@ -116,7 +116,10 @@ async function tick() {
 
   const mints = getWatchMints();
   if (mints.length === 0) {
-    log("idle", { reason: "no_mints", hint: "set WATCH_MINTS or run catchCreated" });
+    log("idle", {
+      reason: "no_mints",
+      hint: "set WATCH_MINTS or run catchCreated",
+    });
     ticking = false;
     return;
   }
