@@ -5,19 +5,30 @@ import {
   fetchMarketCapFromSupply,
 } from "../lib/market-data.js";
 import { evaluateBuyPoint } from "../lib/momentum-scorer.js";
-import { syncPumpTrades } from "../lib/pump-trades.js";
 import { windows } from "../strategy/strategy.js";
 import storeState from "../store/store.js";
+import {
+  EXECUTE_TRADES,
+  executeBuy,
+  executeSell,
+  isExecutorReady,
+  startBlockhashRefresh,
+} from "../lib/executor.js";
 
 const INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 5000);
-const TRADE_INTERVAL_MS = Number(
-  process.env.TRADE_POLL_INTERVAL_MS || INTERVAL_MS,
-);
 
 const store = new TokenStateStore();
 const positions = new PositionManager();
 let ticking = false;
-let lastTradePollAt = 0;
+
+if (EXECUTE_TRADES) {
+  if (!isExecutorReady()) {
+    console.error("EXECUTE_TRADES=true but PRIVATE_KEY or RPC_URL is missing");
+    process.exit(1);
+  }
+  startBlockhashRefresh();
+  console.log("Auto-execution enabled (EXECUTE_TRADES=true)");
+}
 
 function getWatchMints() {
   const fromStore = storeState.mintAddresses ?? [];
@@ -34,16 +45,8 @@ export function log(event, data) {
 }
 
 //Fetch market data for one mint and evaluate buy/sell signals.
-export async function pollMint(mint, { syncTrades = true } = {}) {
+export async function pollMint(mint) {
   const state = store.get(mint);
-
-  // if (syncTrades) {
-  //   const added = await syncPumpTrades(mint, state);
-  //   if (added > 0) {
-  //     log("trades_synced", { mint, added, tradesInState: state.trades.length });
-  //     console.log("tokenState.trades:", state.trades);
-  //   }
-  // }
 
   const market = await fetchMarketSnapshot(mint);
   const marketCap =
@@ -59,6 +62,10 @@ export async function pollMint(mint, { syncTrades = true } = {}) {
     const sell = positions.evaluateSell(mint, currentPrice, state, market);
     if (sell.action === "SELL") {
       log("sell_signal", { mint, ...sell, priceUsd: currentPrice });
+      if (EXECUTE_TRADES) {
+        const exec = await executeSell(mint, { sellPct: sell.sellPct ?? 100 });
+        log("executed", exec);
+      }
       if (sell.fullExit) {
         positions.close(mint);
       }
@@ -87,6 +94,10 @@ export async function pollMint(mint, { syncTrades = true } = {}) {
       totalHolders: market.totalHolders,
       tradesInState: state.trades.length,
     });
+    if (EXECUTE_TRADES) {
+      const exec = await executeBuy(mint);
+      log("executed", exec);
+    }
   } else {
     log("skip", {
       mint,
@@ -110,14 +121,10 @@ async function tick() {
     return;
   }
 
-  const now = Date.now();
-  const syncTrades = now - lastTradePollAt >= TRADE_INTERVAL_MS;
-  if (syncTrades) lastTradePollAt = now;
-
   try {
     for (const mint of mints) {
       try {
-        await pollMint(mint, { syncTrades });
+        await pollMint(mint);
       } catch (err) {
         log("error", { mint, message: err.message });
       }
@@ -129,7 +136,8 @@ async function tick() {
 
 const initialMints = getWatchMints();
 console.log(
-  `Polling every ${INTERVAL_MS}ms (trades every ${TRADE_INTERVAL_MS}ms) for: ${initialMints.length ? initialMints.join(", ") : "(waiting for mints)"
+  `Polling every ${INTERVAL_MS}ms for: ${
+    initialMints.length ? initialMints.join(", ") : "(waiting for mints)"
   }`,
 );
 
