@@ -42,7 +42,7 @@ export class PositionManager {
     pos.highestPriceUsd = Math.max(pos.highestPriceUsd, priceUsd);
   }
   //Evalute exit rules: stop loss, trailing stop, take-profit ladder, time stop, momentum decay
-  evaluateSell(mint, currentPriceUsd, tokenState) {
+  evaluateSell(mint, currentPriceUsd, tokenState, market = null) {
     const pos = this.positions.get(mint);
     if (!pos || !currentPriceUsd || !pos.entryPriceUsd) {
       return { action: "HOLD", reason: "no_position" };
@@ -111,7 +111,11 @@ export class PositionManager {
     }
 
     // Momentum decay
-    const decay = evaluateMomentumDecay(tokenState, pos.entryVolume5m);
+    const decay = evaluateMomentumDecay(
+      tokenState,
+      pos.entryVolume5m,
+      market,
+    );
     if (decay.decayed && pnlPct > 0) {
       return {
         action: "SELL",
