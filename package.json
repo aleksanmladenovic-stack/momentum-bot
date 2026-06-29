@@ -20,12 +20,18 @@
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^1.36.0",
+    "@sequelize/core": "^7.0.0-alpha.48",
+    "@sequelize/postgres": "^7.0.0-alpha.48",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
     "@triton-one/yellowstone-grpc": "^4.0.2",
     "base58": "^2.0.1",
     "bn.js": "^5.2.2",
     "bs58": "^6.0.0",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "pg": "^8.22.0",
+    "sequelize": "^6.37.8"
   }
 }
