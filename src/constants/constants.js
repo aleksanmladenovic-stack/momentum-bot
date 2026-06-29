@@ -4,7 +4,8 @@ dotenv.config();
 
 export const MORALIS_API_KEY = process.env.MORALIS_API_KEY;
 export const RPCURL = process.env.RPC_URL;
-export const EXECUTOR_RPC_URL = process.env.EXECUTOR_RPC_URL || process.env.RPC_URL;
+export const EXECUTOR_RPC_URL =
+  process.env.EXECUTOR_RPC_URL || process.env.RPC_URL;
 export const COMMITMENT = process.env.COMMITMENT;
 export const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
@@ -20,3 +21,9 @@ export const slippagePct = process.env.SLIPPAGE_PCT;
 export const priorityFeeMicrolamports = process.env.PRIORITY_FEE_MICROLAMPORTS;
 export const computeUnitLimit = process.env.COMPUTE_UNIT_LIMIT;
 export const blockhashRefreshMs = process.env.BLOCKHASH_REFRESH_MS;
+
+export const PG_HOST = process.env.PG_HOST;
+export const PG_PORT = process.env.PG_PORT;
+export const PG_USER = process.env.PG_USER;
+export const PG_PASSWORD = process.env.PG_PASSWORD;
+export const PG_DB = process.env.PG_DB;
