@@ -11,22 +11,22 @@ export const CatchBot = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      buyOrSellTime: {
+      buy_or_sell_time: {
         type: DataTypes.DATE,
         allowNull: false,
       },
-      tokenAmount: {
+      token_amount: {
         type: DataTypes.FLOAT,
-        allowNull: false,
+        allowNull: true,
       },
 
-      pnlPct: {
+      pnl_pct: {
         type: DataTypes.FLOAT,
         allowNull: true,
       },
     },
     {
-      tableName: "catched_points",
+      tableName: "catchBot",
       underscored: true,
       timestamps: false,
     },

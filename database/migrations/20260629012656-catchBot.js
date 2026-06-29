@@ -13,29 +13,24 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
-      buyOrSellTime: {
+      buy_or_sell_time: {
         type: Sequelize.DATE,
         allowNull: false,
       },
-      tokenAmount: {
+      token_amount: {
         type: Sequelize.FLOAT,
-        allowNull: false,
+        allowNull: true,
       },
-      solAmount: {
-        type: Sequelize.FLOAT,
-        allowNull: false,
-      },
-      pnlPct: {
+      pnl_pct: {
         type: Sequelize.FLOAT,
         allowNull: true,
       },
     });
 
     await queryInterface.addIndex("catchBot", ["mint"]);
-    await queryInterface.addIndex("catchBot", ["buyOrSellTime"]);
-    await queryInterface.addIndex("catchBot", ["tokenAmount"]);
-    await queryInterface.addIndex("catchBot", ["solAmount"]);
-    await queryInterface.addIndex("catchBot", ["pnlPct"]);
+    await queryInterface.addIndex("catchBot", ["buy_or_sell_time"]);
+    await queryInterface.addIndex("catchBot", ["token_amount"]);
+    await queryInterface.addIndex("catchBot", ["pnl_pct"]);
   },
 
   async down(queryInterface) {

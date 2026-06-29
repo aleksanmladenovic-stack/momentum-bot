@@ -72,9 +72,8 @@ export async function pollMint(mint) {
       }
       saveCatchBuyOrSell({
         mint: mint,
-        buyOrSellTime: sell.sellTime ?? new Date(),
-        tokenAmount: sell.tokenAmount,
-        solAmount: sell.solAmount,
+        buyOrSellTime: new Date(),
+        tokenAmount: 0,
         pnlPct: sell.pnlPct ?? null,
       });
     }
@@ -104,9 +103,8 @@ export async function pollMint(mint) {
     });
     saveCatchBuyOrSell({
       mint: mint,
-      buyOrSellTime: decision.buyTime ?? new Date(),
+      buyOrSellTime: new Date(),
       tokenAmount: decision.tokenAmount,
-      solAmount: decision.solAmount,
       pnlPct: null,
     });
     // if (EXECUTE_TRADES) {

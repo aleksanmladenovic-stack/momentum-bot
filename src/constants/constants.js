@@ -22,8 +22,8 @@ export const priorityFeeMicrolamports = process.env.PRIORITY_FEE_MICROLAMPORTS;
 export const computeUnitLimit = process.env.COMPUTE_UNIT_LIMIT;
 export const blockhashRefreshMs = process.env.BLOCKHASH_REFRESH_MS;
 
-export const PG_HOST = process.env.PG_HOST;
-export const PG_PORT = process.env.PG_PORT;
-export const PG_USER = process.env.PG_USER;
-export const PG_PASSWORD = process.env.PG_PASSWORD;
-export const PG_DB = process.env.PG_DB;
+export const host = process.env.PG_HOST;
+export const port = process.env.PG_PORT;
+export const username = process.env.PG_USERNAME;
+export const password = process.env.PG_PASSWORD;
+export const database = process.env.PG_DB;

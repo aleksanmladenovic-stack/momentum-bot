@@ -1,22 +1,22 @@
-import { CatchBot } from "../../database/models/index.js";
+import { CatchBot } from "../../database/models/catchBot.js";
 import { Sequelize, DataTypes } from "@sequelize/core";
 import { PostgresDialect } from "@sequelize/postgres";
 
 import {
-  PG_HOST,
-  PG_PORT,
-  PG_USER,
-  PG_PASSWORD,
-  PG_DB,
+  host,
+  port,
+  username,
+  password,
+  database,
 } from "../constants/constants.js";
 
 const sequelize = new Sequelize({
   dialect: PostgresDialect,
-  host: PG_HOST,
-  port: PG_PORT,
-  username: PG_USER,
-  password: PG_PASSWORD,
-  database: PG_DB,
+  host: host,
+  port: port,
+  user: username,
+  password: password,
+  database: database,
 });
 
 const catchBot = CatchBot(sequelize, DataTypes);
@@ -25,18 +25,23 @@ export const saveCatchBuyOrSell = async ({
   mint,
   buyOrSellTime,
   tokenAmount,
-  solAmount,
   pnlPct,
 }) => {
   try {
     await catchBot.create({
       mint: mint,
-      buyOrSellTime: buyOrSellTime ?? new Date(),
-      tokenAmount: tokenAmount,
-      solAmount: solAmount,
-      pnlPct: pnlPct ?? null,
+      buy_or_sell_time: buyOrSellTime ?? new Date(),
+      token_amount: tokenAmount,
+      pnl_pct: pnlPct ?? null,
     });
   } catch (error) {
     console.error("Error saving catch buy or sell:", error);
   }
 };
+
+// saveCatchBuyOrSell({
+//   mint: "mint",
+//   buyOrSellTime: new Date(),
+//   tokenAmount: 0,
+//   pnlPct: null,
+// });
