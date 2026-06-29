@@ -64,6 +64,7 @@ export class PositionManager {
         sellPct: pos.remainingPct,
         pnlPct,
         drawdownFromHighPct,
+        fullExit: true,
       };
     }
 
@@ -78,6 +79,7 @@ export class PositionManager {
         sellPct: pos.remainingPct,
         pnlPct,
         drawdownFromHighPct,
+        fullExit: true,
       };
     }
 
@@ -107,15 +109,12 @@ export class PositionManager {
         sellPct: pos.remainingPct,
         pnlPct,
         minutesHeld,
+        fullExit: true,
       };
     }
 
     // Momentum decay
-    const decay = evaluateMomentumDecay(
-      tokenState,
-      pos.entryVolume5m,
-      market,
-    );
+    const decay = evaluateMomentumDecay(tokenState, pos.entryVolume5m, market);
     if (decay.decayed && pnlPct > 0) {
       return {
         action: "SELL",
@@ -123,6 +122,7 @@ export class PositionManager {
         sellPct: pos.remainingPct,
         pnlPct,
         decay,
+        fullExit: true,
       };
     }
 

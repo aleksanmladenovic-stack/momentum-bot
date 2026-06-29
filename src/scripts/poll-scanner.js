@@ -14,6 +14,7 @@ import {
   isExecutorReady,
   startBlockhashRefresh,
 } from "../lib/executor.js";
+import { saveCatchBuyOrSell } from "../save_db/saveCatchBuyOrSell.js";
 
 const INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 5000);
 
@@ -62,13 +63,20 @@ export async function pollMint(mint) {
     const sell = positions.evaluateSell(mint, currentPrice, state, market);
     if (sell.action === "SELL") {
       log("sell_signal", { mint, ...sell, priceUsd: currentPrice });
-      if (EXECUTE_TRADES) {
-        const exec = await executeSell(mint, { sellPct: sell.sellPct ?? 100 });
-        log("executed", exec);
-      }
+      // if (EXECUTE_TRADES) {
+      //   const exec = await executeSell(mint, { sellPct: sell.sellPct ?? 100 });
+      //   log("executed", exec);
+      // }
       if (sell.fullExit) {
         positions.close(mint);
       }
+      saveCatchBuyOrSell({
+        mint: mint,
+        buyOrSellTime: sell.sellTime ?? new Date(),
+        tokenAmount: sell.tokenAmount,
+        solAmount: sell.solAmount,
+        pnlPct: sell.pnlPct ?? null,
+      });
     }
     return;
   }
@@ -94,10 +102,17 @@ export async function pollMint(mint) {
       totalHolders: market.totalHolders,
       tradesInState: state.trades.length,
     });
-    if (EXECUTE_TRADES) {
-      const exec = await executeBuy(mint);
-      log("executed", exec);
-    }
+    saveCatchBuyOrSell({
+      mint: mint,
+      buyOrSellTime: decision.buyTime ?? new Date(),
+      tokenAmount: decision.tokenAmount,
+      solAmount: decision.solAmount,
+      pnlPct: null,
+    });
+    // if (EXECUTE_TRADES) {
+    //   const exec = await executeBuy(mint);
+    //   log("executed", exec);
+    // }
   } else {
     log("skip", {
       mint,
